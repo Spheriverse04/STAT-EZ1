@@ -1,44 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STAT-EZ</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <header>
-        <h1>STAT-EZ</h1>
-        <p>Your intelligent data cleaning and analysis partner.</p>
-    </header>
-
-    <main>
-        <div id="upload-section" class="card">
-            <h2>1. Upload Your Data</h2>
-            <p>Drag & drop your .csv or .xlsx file here, or click to select a file.</p>
-            <div id="drop-zone">
-                <p>Drop file here</p>
-                <input type="file" id="file-input" accept=".csv, .xls, .xlsx">
-            </div>
-            <div id="upload-status"></div>
-        </div>
-
-        <div id="results-section" class="card hidden">
-            <h2>2. Analysis & Report</h2>
-            <div id="report-container"></div>
-            
-            <h3>Audit Trail</h3>
-            <ul id="audit-trail"></ul>
-
-            <h3>Download Cleaned File</h3>
-            <a id="download-link" href="#" class="button">Download Now</a>
-        </div>
-    </main>
-
-    <footer>
-        <p>&copy; 2025 STAT-EZ.</p>
-    </footer>
-
-    <script src="script.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>STAT-EZ - Intelligent Data Processing Platform</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
