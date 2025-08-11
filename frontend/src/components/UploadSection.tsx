@@ -1,14 +1,18 @@
 import React, { useCallback, useState } from 'react'
 import { motion } from 'framer-motion'
-import { CloudArrowUpIcon, DocumentIcon } from '@heroicons/react/24/outline'
+import { CloudArrowUpIcon, DocumentIcon, LinkIcon } from '@heroicons/react/24/outline'
 import { useDropzone } from 'react-dropzone'
+import URLUpload from './URLUpload'
 
 interface UploadSectionProps {
   onFileUpload: (file: File) => void
+  onURLUpload?: (data: any) => void
 }
 
-const UploadSection: React.FC<UploadSectionProps> = ({ onFileUpload }) => {
+const UploadSection: React.FC<UploadSectionProps> = ({ onFileUpload, onURLUpload }) => {
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'file' | 'url'>('file')
+  const [isURLLoading, setIsURLLoading] = useState(false)
 
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
     setUploadError(null)
@@ -34,6 +38,17 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onFileUpload }) => {
     maxSize: 50 * 1024 * 1024 // 50MB
   })
 
+  const handleURLUpload = async (data: any) => {
+    setIsURLLoading(true)
+    try {
+      if (onURLUpload) {
+        await onURLUpload(data)
+      }
+    } finally {
+      setIsURLLoading(false)
+    }
+  }
+
   return (
     <motion.div
       className="card"
@@ -44,64 +59,99 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onFileUpload }) => {
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload Your Dataset</h2>
         <p className="text-gray-600">
-          Upload your CSV or Excel file to begin intelligent data processing
+          Upload your dataset file or provide a URL for large files
         </p>
       </div>
 
-      <div
-        {...getRootProps()}
-        className={`
-          border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-200
-          ${isDragActive && !isDragReject 
-            ? 'border-primary-400 bg-primary-50' 
-            : isDragReject 
-            ? 'border-error-400 bg-error-50'
-            : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50'
-          }
-        `}
-      >
-        <input {...getInputProps()} />
-        
-        <div className="flex flex-col items-center space-y-4">
-          <div className={`
-            w-16 h-16 rounded-full flex items-center justify-center
-            ${isDragActive && !isDragReject 
-              ? 'bg-primary-100' 
-              : isDragReject 
-              ? 'bg-error-100'
-              : 'bg-gray-100'
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-6">
+        <button
+          onClick={() => setActiveTab('file')}
+          className={`
+            flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-md font-medium text-sm transition-all
+            ${activeTab === 'file' 
+              ? 'bg-white text-primary-600 shadow-sm' 
+              : 'text-gray-600 hover:text-gray-900'
             }
-          `}>
-            {isDragReject ? (
-              <DocumentIcon className="w-8 h-8 text-error-600" />
-            ) : (
-              <CloudArrowUpIcon className={`
-                w-8 h-8 
-                ${isDragActive ? 'text-primary-600' : 'text-gray-600'}
-              `} />
-            )}
-          </div>
+          `}
+        >
+          <CloudArrowUpIcon className="w-4 h-4" />
+          <span>Upload File</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('url')}
+          className={`
+            flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-md font-medium text-sm transition-all
+            ${activeTab === 'url' 
+              ? 'bg-white text-primary-600 shadow-sm' 
+              : 'text-gray-600 hover:text-gray-900'
+            }
+          `}
+        >
+          <LinkIcon className="w-4 h-4" />
+          <span>From URL</span>
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'file' ? (
+        <div
+          {...getRootProps()}
+          className={`
+            border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-200
+            ${isDragActive && !isDragReject 
+              ? 'border-primary-400 bg-primary-50' 
+              : isDragReject 
+              ? 'border-error-400 bg-error-50'
+              : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50'
+            }
+          `}
+        >
+          <input {...getInputProps()} />
           
-          <div>
-            {isDragActive ? (
-              isDragReject ? (
-                <p className="text-error-600 font-medium">Invalid file type</p>
+          <div className="flex flex-col items-center space-y-4">
+            <div className={`
+              w-16 h-16 rounded-full flex items-center justify-center
+              ${isDragActive && !isDragReject 
+                ? 'bg-primary-100' 
+                : isDragReject 
+                ? 'bg-error-100'
+                : 'bg-gray-100'
+              }
+            `}>
+              {isDragReject ? (
+                <DocumentIcon className="w-8 h-8 text-error-600" />
               ) : (
-                <p className="text-primary-600 font-medium">Drop your file here</p>
-              )
-            ) : (
-              <>
-                <p className="text-gray-900 font-medium mb-1">
-                  Drag & drop your file here, or click to browse
-                </p>
-                <p className="text-gray-500 text-sm">
-                  Supports CSV, XLS, XLSX files up to 50MB
-                </p>
-              </>
-            )}
+                <CloudArrowUpIcon className={`
+                  w-8 h-8 
+                  ${isDragActive ? 'text-primary-600' : 'text-gray-600'}
+                `} />
+              )}
+            </div>
+            
+            <div>
+              {isDragActive ? (
+                isDragReject ? (
+                  <p className="text-error-600 font-medium">Invalid file type</p>
+                ) : (
+                  <p className="text-primary-600 font-medium">Drop your file here</p>
+                )
+              ) : (
+                <>
+                  <p className="text-gray-900 font-medium mb-1">
+                    Drag & drop your file here, or click to browse
+                  </p>
+                  <p className="text-gray-500 text-sm">
+                    Supports CSV, XLS, XLSX files up to 50MB
+                  </p>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <URLUpload onURLUpload={handleURLUpload} isLoading={isURLLoading} />
+      )}
 
       {uploadError && (
         <motion.div
@@ -119,7 +169,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onFileUpload }) => {
             <span className="text-primary-600 font-semibold text-sm">1</span>
           </div>
           <h3 className="font-medium text-gray-900 mb-1">Upload</h3>
-          <p className="text-gray-600 text-sm">Select your dataset file</p>
+          <p className="text-gray-600 text-sm">Select file or provide URL</p>
         </div>
         
         <div className="text-center p-4 bg-gray-50 rounded-lg">
@@ -134,8 +184,8 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onFileUpload }) => {
           <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-2">
             <span className="text-gray-600 font-semibold text-sm">3</span>
           </div>
-          <h3 className="font-medium text-gray-900 mb-1">Download</h3>
-          <p className="text-gray-600 text-sm">Get cleaned results</p>
+          <h3 className="font-medium text-gray-900 mb-1">Analyze</h3>
+          <p className="text-gray-600 text-sm">Get insights & reports</p>
         </div>
       </div>
     </motion.div>
@@ -143,3 +193,4 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onFileUpload }) => {
 }
 
 export default UploadSection
+

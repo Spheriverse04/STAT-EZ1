@@ -64,8 +64,10 @@ export interface ColumnInfo {
 
 export interface DataPreview {
   columns: ColumnInfo[]
+  mixed_columns?: any[]
   sample_rows: Record<string, any>[]
   total_rows: number
+  requires_decisions?: boolean
 }
 
 export interface DataSummary {
@@ -102,4 +104,5 @@ export interface VisualizationConfig {
   y_column?: string
   color_column?: string
 }
+
 

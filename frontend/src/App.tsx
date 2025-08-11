@@ -5,18 +5,30 @@ import UploadSection from './components/UploadSection'
 import ProcessingOptions from './components/ProcessingOptions'
 import EnhancedResultsSection from './components/EnhancedResultsSection'
 import VersionHistory from './components/VersionHistory'
+import MixedColumnDecisions from './components/MixedColumnDecisions'
 import { ProcessingConfig, ProcessingResult, DatasetVersion } from './types'
 
 function App() {
   const [currentStep, setCurrentStep] = useState<'upload' | 'configure' | 'results'>('upload')
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [urlData, setUrlData] = useState<any>(null)
   const [processingConfig, setProcessingConfig] = useState<ProcessingConfig | null>(null)
   const [processingResult, setProcessingResult] = useState<ProcessingResult | null>(null)
   const [versions, setVersions] = useState<DatasetVersion[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
+  const [mixedColumns, setMixedColumns] = useState<any[]>([])
+  const [showMixedColumnDecisions, setShowMixedColumnDecisions] = useState(false)
+  const [columnDecisions, setColumnDecisions] = useState<Record<string, any>>({})
 
   const handleFileUpload = (file: File) => {
     setUploadedFile(file)
+    setUrlData(null)
+    setCurrentStep('configure')
+  }
+
+  const handleURLUpload = (data: any) => {
+    setUrlData(data)
+    setUploadedFile(null)
     setCurrentStep('configure')
   }
 
@@ -26,12 +38,18 @@ function App() {
     
     try {
       const formData = new FormData()
+      
       if (uploadedFile) {
         formData.append('file', uploadedFile)
+      } else if (urlData) {
+        formData.append('temp_path', urlData.temp_path)
+        formData.append('filename', urlData.filename)
       }
+      
       formData.append('config', JSON.stringify(config))
+      formData.append('column_decisions', JSON.stringify(columnDecisions))
 
-      const response = await fetch('/api/process', {
+      const response = await fetch('/api/process-with-decisions', {
         method: 'POST',
         body: formData,
       })
@@ -62,6 +80,23 @@ function App() {
     }
   }
 
+  const handleMixedColumnDecisions = (decisions: Record<string, any>) => {
+    setColumnDecisions(decisions)
+    setShowMixedColumnDecisions(false)
+    // Continue with processing
+  }
+
+  const handleSkipMixedColumns = () => {
+    // Use safe defaults for all mixed columns
+    const safeDecisions: Record<string, any> = {}
+    mixedColumns.forEach(col => {
+      const safeOption = col.suggestions.find((s: any) => s.confidence === 'safe') || col.suggestions[0]
+      safeDecisions[col.column_name] = safeOption
+    })
+    setColumnDecisions(safeDecisions)
+    setShowMixedColumnDecisions(false)
+  }
+
   const handleVersionSwitch = (versionId: string) => {
     const version = versions.find(v => v.id === versionId)
     if (version) {
@@ -82,8 +117,11 @@ function App() {
   const handleNewUpload = () => {
     setCurrentStep('upload')
     setUploadedFile(null)
+    setUrlData(null)
     setProcessingConfig(null)
     setProcessingResult(null)
+    setMixedColumns([])
+    setColumnDecisions({})
   }
 
   const handleReconfigure = () => {
@@ -108,11 +146,11 @@ function App() {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <UploadSection onFileUpload={handleFileUpload} />
+                  <UploadSection onFileUpload={handleFileUpload} onURLUpload={handleURLUpload} />
                 </motion.div>
               )}
 
-              {currentStep === 'configure' && uploadedFile && (
+              {currentStep === 'configure' && (uploadedFile || urlData) && (
                 <motion.div
                   key="configure"
                   initial={{ opacity: 0, y: 20 }}
@@ -122,9 +160,16 @@ function App() {
                 >
                   <ProcessingOptions
                     file={uploadedFile}
+                    urlData={urlData}
                     onProcess={handleProcessingStart}
                     onBack={handleNewUpload}
                     isProcessing={isProcessing}
+                    onMixedColumnsDetected={(columns) => {
+                      setMixedColumns(columns)
+                      if (columns.length > 0) {
+                        setShowMixedColumnDecisions(true)
+                      }
+                    }}
                   />
                 </motion.div>
               )}
@@ -155,10 +200,20 @@ function App() {
             />
           </div>
         </div>
+
+        {/* Mixed Column Decisions Modal */}
+        {showMixedColumnDecisions && mixedColumns.length > 0 && (
+          <MixedColumnDecisions
+            mixedColumns={mixedColumns}
+            onDecisionsMade={handleMixedColumnDecisions}
+            onSkip={handleSkipMixedColumns}
+          />
+        )}
       </main>
     </div>
   )
 }
 
 export default App
+
 

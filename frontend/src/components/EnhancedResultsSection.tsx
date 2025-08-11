@@ -106,15 +106,13 @@ const EnhancedResultsSection: React.FC<EnhancedResultsSectionProps> = ({
             <span>Download Cleaned Data</span>
           </button>
           
-          {result.report_url && (
-            <button
-              onClick={downloadReport}
-              className="btn-secondary flex items-center space-x-2"
-            >
-              <DocumentTextIcon className="w-4 h-4" />
-              <span>Download Report</span>
-            </button>
-          )}
+          <button
+            onClick={downloadReport}
+            className="btn-secondary flex items-center space-x-2"
+          >
+            <DocumentTextIcon className="w-4 h-4" />
+            <span>Download PDF Report</span>
+          </button>
           
           <button
             onClick={onReconfigure}
@@ -129,6 +127,14 @@ const EnhancedResultsSection: React.FC<EnhancedResultsSectionProps> = ({
             className="btn-secondary"
           >
             Process New File
+          </button>
+          
+          <button
+            onClick={() => {/* Implement refine functionality */}}
+            className="btn-secondary flex items-center space-x-2"
+          >
+            <ArrowPathIcon className="w-4 h-4" />
+            <span>Refine This Version</span>
           </button>
         </div>
       </div>
@@ -329,3 +335,4 @@ const EnhancedResultsSection: React.FC<EnhancedResultsSectionProps> = ({
 }
 
 export default EnhancedResultsSection
+

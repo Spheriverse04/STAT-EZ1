@@ -11,16 +11,20 @@ import SchemaMapping from './SchemaMapping'
 
 interface ProcessingOptionsProps {
   file: File
+  urlData?: any
   onProcess: (config: ProcessingConfig) => void
   onBack: () => void
   isProcessing: boolean
+  onMixedColumnsDetected?: (columns: any[]) => void
 }
 
 const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
   file,
+  urlData,
   onProcess,
   onBack,
-  isProcessing
+  isProcessing,
+  onMixedColumnsDetected
 }) => {
   const [dataPreview, setDataPreview] = useState<DataPreview | null>(null)
   const [loading, setLoading] = useState(true)
@@ -58,7 +62,13 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
   const loadDataPreview = async () => {
     try {
       const formData = new FormData()
-      formData.append('file', file)
+      
+      if (file) {
+        formData.append('file', file)
+      } else if (urlData) {
+        formData.append('temp_path', urlData.temp_path)
+        formData.append('filename', urlData.filename)
+      }
       
       const response = await fetch('/api/preview', {
         method: 'POST',
@@ -68,6 +78,11 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
       if (response.ok) {
         const preview: DataPreview = await response.json()
         setDataPreview(preview)
+        
+        // Check for mixed columns and notify parent
+        if (preview.mixed_columns && preview.mixed_columns.length > 0 && onMixedColumnsDetected) {
+          onMixedColumnsDetected(preview.mixed_columns)
+        }
         
         // Initialize schema mapping with column names
         const mapping: Record<string, string> = {}
@@ -125,7 +140,14 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
             </button>
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Configure Processing</h2>
-              <p className="text-gray-600">File: {file.name}</p>
+              <p className="text-gray-600">
+                File: {file?.name || urlData?.filename || 'Dataset'}
+                {urlData && (
+                  <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    From URL
+                  </span>
+                )}
+              </p>
             </div>
           </div>
           
@@ -187,7 +209,12 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
         <div className="card">
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-600">
-              Ready to process your data with the configured settings
+              Ready to process your data with the configured settings.
+              {dataPreview?.requires_decisions && (
+                <span className="block mt-1 text-yellow-600 font-medium">
+                  ⚠️ Some columns contain mixed data types and may require your input during processing.
+                </span>
+              )}
             </div>
             
             <div className="flex space-x-3">
@@ -225,4 +252,5 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
 }
 
 export default ProcessingOptions
+
 
