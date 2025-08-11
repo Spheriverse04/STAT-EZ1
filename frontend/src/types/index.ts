@@ -64,8 +64,10 @@ export interface ColumnInfo {
 
 export interface DataPreview {
   columns: ColumnInfo[]
+  mixed_columns?: any[]
   sample_rows: Record<string, any>[]
   total_rows: number
+  requires_decisions?: boolean
 }
 
 export interface DataSummary {
