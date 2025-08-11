@@ -64,7 +64,7 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({ versions }) => {
                 {format(new Date(version.timestamp), 'MMM dd, yyyy HH:mm')}
               </div>
               
-              <div className="text-sm text-gray-700 mb-2">
+              <div className="text-sm text-gray-700 mb-2 truncate">
                 {version.filename}
               </div>
               
@@ -81,9 +81,31 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({ versions }) => {
               
               <div className="mt-2 text-xs text-gray-500">
                 Method: {version.config.imputation.method}
+                {version.config.imputation.delete_null_rows && (
+                  <span className="ml-2 text-red-600">• Deleted null rows</span>
+                )}
                 {version.config.outlier_detection.enabled && (
                   <span className="ml-2">• Outlier detection: {version.config.outlier_detection.method}</span>
                 )}
+                {version.config.rules.enabled && version.config.rules.custom_rules.length > 0 && (
+                  <span className="ml-2">• {version.config.rules.custom_rules.length} custom rules</span>
+                )}
+              </div>
+              
+              <div className="mt-2 flex items-center space-x-2">
+                <button 
+                  className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  onClick={() => {/* Switch to this version */}}
+                >
+                  Switch to Version
+                </button>
+                <span className="text-gray-300">•</span>
+                <button 
+                  className="text-xs text-gray-600 hover:text-gray-800"
+                  onClick={() => {/* Compare versions */}}
+                >
+                  Compare
+                </button>
               </div>
             </motion.div>
           ))}
@@ -94,3 +116,4 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({ versions }) => {
 }
 
 export default VersionHistory
+

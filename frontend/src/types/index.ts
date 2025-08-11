@@ -1,6 +1,7 @@
 export interface ProcessingConfig {
   imputation: {
     method: 'mean' | 'median' | 'knn'
+    delete_null_rows?: boolean
     knn_neighbors?: number
     column_specific?: Record<string, 'mean' | 'median' | 'knn'>
   }
@@ -66,3 +67,39 @@ export interface DataPreview {
   sample_rows: Record<string, any>[]
   total_rows: number
 }
+
+export interface DataSummary {
+  total_rows: number
+  total_columns: number
+  numeric_columns: number
+  categorical_columns: number
+  missing_values: number
+  duplicate_rows: number
+  memory_usage: number
+  column_stats: Record<string, {
+    type: 'numeric' | 'categorical'
+    mean?: number
+    median?: number
+    std?: number
+    min?: number
+    max?: number
+    unique_count?: number
+    most_frequent?: string
+    missing_count: number
+  }>
+}
+
+export interface SQLQueryResult {
+  success: boolean
+  data: Record<string, any>[]
+  columns: string[]
+  row_count: number
+}
+
+export interface VisualizationConfig {
+  chart_type: 'histogram' | 'bar' | 'pie' | 'scatter' | 'line' | 'box'
+  x_column: string
+  y_column?: string
+  color_column?: string
+}
+

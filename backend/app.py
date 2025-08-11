@@ -5,11 +5,16 @@ import numpy as np
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
 from scipy import stats
+import sqlite3
+import tempfile
 import os
 import datetime
 import json
 import uuid
 from pathlib import Path
+import plotly.graph_objects as go
+import plotly.express as px
+from plotly.utils import PlotlyJSONEncoder
 
 app = Flask(__name__)
 CORS(app)
@@ -29,10 +34,82 @@ class DataProcessor:
         self.config = config
         self.audit_trail = []
         self.version_id = str(uuid.uuid4())
+        self.db_path = None
         
     def log_action(self, message):
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.audit_trail.append(f"[{timestamp}] {message}")
+        
+    def create_database(self):
+        """Create SQLite database from DataFrame"""
+        if self.db_path is None:
+            # Create temporary database file
+            db_fd, self.db_path = tempfile.mkstemp(suffix='.db')
+            os.close(db_fd)
+        
+        conn = sqlite3.connect(self.db_path)
+        self.df.to_sql('dataset', conn, if_exists='replace', index=False)
+        conn.close()
+        self.log_action(f"Created SQLite database with {len(self.df)} rows")
+        return self.db_path
+        
+    def execute_sql_query(self, query):
+        """Execute SQL query on the dataset"""
+        if self.db_path is None:
+            self.create_database()
+            
+        try:
+            conn = sqlite3.connect(self.db_path)
+            result_df = pd.read_sql_query(query, conn)
+            conn.close()
+            self.log_action(f"Executed SQL query: {query[:100]}...")
+            return result_df
+        except Exception as e:
+            self.log_action(f"SQL query error: {str(e)}")
+            raise e
+            
+    def generate_visualization(self, chart_type, x_column, y_column=None, color_column=None):
+        """Generate interactive visualizations using Plotly"""
+        try:
+            if chart_type == 'histogram':
+                fig = px.histogram(self.df, x=x_column, color=color_column, 
+                                 title=f'Histogram of {x_column}')
+            elif chart_type == 'bar':
+                if y_column:
+                    fig = px.bar(self.df, x=x_column, y=y_column, color=color_column,
+                               title=f'{y_column} by {x_column}')
+                else:
+                    value_counts = self.df[x_column].value_counts()
+                    fig = px.bar(x=value_counts.index, y=value_counts.values,
+                               title=f'Count of {x_column}')
+            elif chart_type == 'pie':
+                value_counts = self.df[x_column].value_counts()
+                fig = px.pie(values=value_counts.values, names=value_counts.index,
+                           title=f'Distribution of {x_column}')
+            elif chart_type == 'scatter':
+                if y_column:
+                    fig = px.scatter(self.df, x=x_column, y=y_column, color=color_column,
+                                   title=f'{y_column} vs {x_column}')
+                else:
+                    raise ValueError("Y column required for scatter plot")
+            elif chart_type == 'line':
+                if y_column:
+                    fig = px.line(self.df, x=x_column, y=y_column, color=color_column,
+                                title=f'{y_column} over {x_column}')
+                else:
+                    raise ValueError("Y column required for line chart")
+            elif chart_type == 'box':
+                fig = px.box(self.df, x=x_column, y=y_column, color=color_column,
+                           title=f'Box Plot of {y_column} by {x_column}' if y_column else f'Box Plot of {x_column}')
+            else:
+                raise ValueError(f"Unsupported chart type: {chart_type}")
+                
+            # Convert to JSON for frontend
+            return json.loads(fig.to_json())
+            
+        except Exception as e:
+            self.log_action(f"Visualization error: {str(e)}")
+            raise e
         
     def get_column_info(self, df):
         """Extract detailed column information"""
@@ -68,6 +145,14 @@ class DataProcessor:
         self.log_action("Starting missing value imputation")
         
         missing_before = self.df.isnull().sum().to_dict()
+        
+        # Check if user wants to delete rows with null values
+        if self.config['imputation'].get('delete_null_rows', False):
+            initial_rows = len(self.df)
+            self.df = self.df.dropna()
+            deleted_rows = initial_rows - len(self.df)
+            self.log_action(f"Deleted {deleted_rows} rows containing null values")
+            return missing_before, self.df.isnull().sum().to_dict()
         
         # Get numeric columns for imputation
         numeric_cols = self.df.select_dtypes(include=[np.number]).columns
@@ -125,6 +210,137 @@ class DataProcessor:
         missing_after = self.df.isnull().sum().to_dict()
         return missing_before, missing_after
         
+    def get_data_summary(self):
+        """Get comprehensive data summary for dashboard"""
+        summary = {
+            'total_rows': len(self.df),
+            'total_columns': len(self.df.columns),
+            'numeric_columns': len(self.df.select_dtypes(include=[np.number]).columns),
+            'categorical_columns': len(self.df.select_dtypes(include=['object']).columns),
+            'missing_values': self.df.isnull().sum().sum(),
+            'duplicate_rows': self.df.duplicated().sum(),
+            'memory_usage': self.df.memory_usage(deep=True).sum(),
+            'column_stats': {}
+        }
+        
+        # Get statistics for each column
+        for col in self.df.columns:
+            if self.df[col].dtype in ['int64', 'float64']:
+                summary['column_stats'][col] = {
+                    'type': 'numeric',
+                    'mean': float(self.df[col].mean()) if not self.df[col].isnull().all() else None,
+                    'median': float(self.df[col].median()) if not self.df[col].isnull().all() else None,
+                    'std': float(self.df[col].std()) if not self.df[col].isnull().all() else None,
+                    'min': float(self.df[col].min()) if not self.df[col].isnull().all() else None,
+                    'max': float(self.df[col].max()) if not self.df[col].isnull().all() else None,
+                    'missing_count': int(self.df[col].isnull().sum())
+                }
+            else:
+                summary['column_stats'][col] = {
+                    'type': 'categorical',
+                    'unique_count': int(self.df[col].nunique()),
+                    'most_frequent': str(self.df[col].mode().iloc[0]) if len(self.df[col].mode()) > 0 else None,
+                    'missing_count': int(self.df[col].isnull().sum())
+                }
+                
+        return summary
+        
+@app.route('/sql-query', methods=['POST'])
+def execute_sql_query():
+    """Execute SQL query on processed dataset"""
+    try:
+        data = request.get_json()
+        version_id = data.get('version_id')
+        query = data.get('query')
+        
+        if not version_id or not query:
+            return jsonify({"error": "Version ID and query are required"}), 400
+            
+        # Find the processor instance (in a real app, you'd store these)
+        # For now, we'll create a new processor with the cleaned file
+        cleaned_files = [f for f in os.listdir(CLEANED_FOLDER) if version_id in f]
+        if not cleaned_files:
+            return jsonify({"error": "Version not found"}), 404
+            
+        # Load the cleaned dataset
+        file_path = os.path.join(CLEANED_FOLDER, cleaned_files[0])
+        if file_path.endswith('.csv'):
+            df = pd.read_csv(file_path)
+        else:
+            df = pd.read_excel(file_path)
+            
+        processor = DataProcessor(df, {})
+        result_df = processor.execute_sql_query(query)
+        
+        return jsonify({
+            'success': True,
+            'data': result_df.to_dict('records'),
+            'columns': result_df.columns.tolist(),
+            'row_count': len(result_df)
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"SQL query failed: {str(e)}"}), 500
+
+@app.route('/visualize', methods=['POST'])
+def create_visualization():
+    """Create interactive visualization"""
+    try:
+        data = request.get_json()
+        version_id = data.get('version_id')
+        chart_type = data.get('chart_type')
+        x_column = data.get('x_column')
+        y_column = data.get('y_column')
+        color_column = data.get('color_column')
+        
+        if not version_id or not chart_type or not x_column:
+            return jsonify({"error": "Version ID, chart type, and X column are required"}), 400
+            
+        # Load the cleaned dataset
+        cleaned_files = [f for f in os.listdir(CLEANED_FOLDER) if version_id in f]
+        if not cleaned_files:
+            return jsonify({"error": "Version not found"}), 404
+            
+        file_path = os.path.join(CLEANED_FOLDER, cleaned_files[0])
+        if file_path.endswith('.csv'):
+            df = pd.read_csv(file_path)
+        else:
+            df = pd.read_excel(file_path)
+            
+        processor = DataProcessor(df, {})
+        chart_data = processor.generate_visualization(chart_type, x_column, y_column, color_column)
+        
+        return jsonify({
+            'success': True,
+            'chart_data': chart_data
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"Visualization failed: {str(e)}"}), 500
+
+@app.route('/data-summary/<version_id>')
+def get_data_summary(version_id):
+    """Get comprehensive data summary"""
+    try:
+        # Load the cleaned dataset
+        cleaned_files = [f for f in os.listdir(CLEANED_FOLDER) if version_id in f]
+        if not cleaned_files:
+            return jsonify({"error": "Version not found"}), 404
+            
+        file_path = os.path.join(CLEANED_FOLDER, cleaned_files[0])
+        if file_path.endswith('.csv'):
+            df = pd.read_csv(file_path)
+        else:
+            df = pd.read_excel(file_path)
+            
+        processor = DataProcessor(df, {})
+        summary = processor.get_data_summary()
+        
+        return jsonify(summary)
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to get data summary: {str(e)}"}), 500
+
     def detect_outliers(self):
         """Detect and handle outliers"""
         if not self.config['outlier_detection']['enabled']:
@@ -432,3 +648,4 @@ def upload_file():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+

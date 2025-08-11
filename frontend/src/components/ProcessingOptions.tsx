@@ -30,6 +30,7 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
     defaultValues: {
       imputation: {
         method: 'mean',
+        delete_null_rows: false,
         knn_neighbors: 5,
         column_specific: {}
       },
@@ -224,3 +225,4 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
 }
 
 export default ProcessingOptions
+

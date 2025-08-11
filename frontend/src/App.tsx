@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Header from './components/Header'
 import UploadSection from './components/UploadSection'
 import ProcessingOptions from './components/ProcessingOptions'
-import ResultsSection from './components/ResultsSection'
+import EnhancedResultsSection from './components/EnhancedResultsSection'
 import VersionHistory from './components/VersionHistory'
 import { ProcessingConfig, ProcessingResult, DatasetVersion } from './types'
 
@@ -62,6 +62,23 @@ function App() {
     }
   }
 
+  const handleVersionSwitch = (versionId: string) => {
+    const version = versions.find(v => v.id === versionId)
+    if (version) {
+      // Create a mock ProcessingResult from the version
+      const mockResult: ProcessingResult = {
+        version_id: version.id,
+        original_filename: version.filename,
+        cleaned_filename: version.filename,
+        summary: version.summary,
+        audit_trail: version.auditTrail,
+        download_url: `/api/download/${version.filename}`
+      }
+      setProcessingResult(mockResult)
+      setProcessingConfig(version.config)
+      setCurrentStep('results')
+    }
+  }
   const handleNewUpload = () => {
     setCurrentStep('upload')
     setUploadedFile(null)
@@ -120,7 +137,7 @@ function App() {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <ResultsSection
+                  <EnhancedResultsSection
                     result={processingResult}
                     onNewUpload={handleNewUpload}
                     onReconfigure={handleReconfigure}
@@ -132,7 +149,10 @@ function App() {
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <VersionHistory versions={versions} />
+            <VersionHistory 
+              versions={versions} 
+              onVersionSwitch={handleVersionSwitch}
+            />
           </div>
         </div>
       </main>
@@ -141,3 +161,4 @@ function App() {
 }
 
 export default App
+
