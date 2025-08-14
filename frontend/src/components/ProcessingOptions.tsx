@@ -10,7 +10,7 @@ import RuleSettings from './RuleSettings'
 import SchemaMapping from './SchemaMapping'
 
 interface ProcessingOptionsProps {
-  file: File
+  file: File | null
   urlData?: any
   onProcess: (config: ProcessingConfig) => void
   onBack: () => void
@@ -28,6 +28,7 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
 }) => {
   const [dataPreview, setDataPreview] = useState<DataPreview | null>(null)
   const [loading, setLoading] = useState(true)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'preview' | 'imputation' | 'outliers' | 'rules' | 'mapping'>('preview')
   
   const { handleSubmit, control, watch, setValue } = useForm<ProcessingConfig>({
@@ -56,10 +57,15 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
   })
 
   useEffect(() => {
-    loadDataPreview()
+    if (file || urlData) {
+      loadDataPreview()
+    }
   }, [file])
 
   const loadDataPreview = async () => {
+    setLoading(true)
+    setUploadError(null)
+    
     try {
       const formData = new FormData()
       
@@ -68,6 +74,10 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
       } else if (urlData) {
         formData.append('temp_path', urlData.temp_path)
         formData.append('filename', urlData.filename)
+      } else {
+        setUploadError('No file or URL data provided')
+        setLoading(false)
+        return
       }
       
       const response = await fetch('/api/preview', {
@@ -90,7 +100,6 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
         }
         
         setDataPreview(safePreview)
-        setDataPreview(preview)
         
         // Check for mixed columns and notify parent
         if (safePreview.mixed_columns && safePreview.mixed_columns.length > 0 && onMixedColumnsDetected) {
@@ -139,6 +148,20 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
     )
   }
 
+  if (uploadError) {
+    return (
+      <div className="card">
+        <div className="text-center py-12">
+          <div className="text-red-500 text-4xl mb-4">⚠️</div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Analysis Failed</h3>
+          <p className="text-gray-600 mb-4">{uploadError}</p>
+          <button onClick={onBack} className="btn-primary">
+            Go Back
+          </button>
+        </div>
+      </div>
+    )
+  }
   return (
     <motion.div
       className="space-y-6"
@@ -270,5 +293,6 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
 }
 
 export default ProcessingOptions
+
 
 

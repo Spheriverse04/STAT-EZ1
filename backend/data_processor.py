@@ -36,6 +36,7 @@ class DataProcessor:
 
     def __init__(self, df, config=None, decisions=None, logger=None):
         self.df = df.copy()
+        self.original_df = df.copy()
         self.config = config or {}
         self.decisions = decisions or {}
         self.logger = logger or logging.getLogger(__name__)
@@ -63,7 +64,13 @@ class DataProcessor:
                 self.log(f"convert_columns: column '{col}' not present, skipping")
                 continue
 
-            action = dec.get("action") if isinstance(dec, dict) else dec
+            if isinstance(dec, dict):
+                action = dec.get("action")
+            elif hasattr(dec, 'get'):
+                action = dec.get('action')
+            else:
+                action = str(dec)
+                
             try:
                 if action in ("numeric", "to_numeric"):
                     self.log(f"Converting {col} -> numeric")
@@ -82,6 +89,9 @@ class DataProcessor:
                 elif action == "drop":
                     self.log(f"Dropping column {col}")
                     self.df.drop(columns=[col], inplace=True, errors="ignore")
+                elif action in ("keep_as_text", "keep_as_categorical"):
+                    self.log(f"Keeping {col} as original type")
+                    # No conversion needed
                 else:
                     self.log(f"Unknown conversion action '{action}' for {col} -> skipping")
             except Exception as e:
@@ -160,22 +170,46 @@ class DataProcessor:
 
     def generate_summary(self):
         df = self.df
+        original_df = self.original_df
         try:
-            missing = df.isna().sum().to_dict()
-            dtypes = {c: str(t) for c, t in df.dtypes.items()}
-            basic_stats = df.describe(include="all", datetime_is_numeric=True).to_dict()
+            # Calculate missing values before and after
+            missing_before = original_df.isna().sum().to_dict()
+            missing_after = df.isna().sum().to_dict()
+
+            # Count outliers detected (approximate, IQR method)
+            outliers_detected = 0
+            if self.config.get("outlier_detection", {}).get("enabled", False):
+                numeric_cols = df.select_dtypes(include=[np.number]).columns
+                for col in numeric_cols:
+                    q1 = df[col].quantile(0.25)
+                    q3 = df[col].quantile(0.75)
+                    iqr = q3 - q1
+                    lower = q1 - 1.5 * iqr
+                    upper = q3 + 1.5 * iqr
+                    outliers_detected += ((df[col] < lower) | (df[col] > upper)).sum()
+
             summary = {
-                "rows": len(df),
-                "columns": df.columns.tolist(),
-                "missing_values": missing,
-                "dtypes": dtypes,
-                "basic_stats": basic_stats,
-                "example_rows": df.head(3).to_dict(orient="records"),
+                "rows_original": len(original_df),
+                "rows_cleaned": len(df),
+                "columns": len(df.columns),
+                "missing_values_before": missing_before,
+                "missing_values_after": missing_after,
+                "outliers_detected": int(outliers_detected),
+                "rules_applied": len(self.config.get("rules", {}).get("custom_rules", []))
             }
             return summary
         except Exception as e:
             self.log("generate_summary error:", e)
-            return {"rows": len(df), "columns": df.columns.tolist()}
+            return {
+                "rows_original": len(getattr(self, "original_df", df)),
+                "rows_cleaned": len(df),
+                "columns": len(df.columns),
+                "missing_values_before": {},
+                "missing_values_after": {},
+                "outliers_detected": 0,
+                "rules_applied": 0
+            }
+
 
     def save_cleaned(self, out_dir):
         try:
@@ -249,4 +283,5 @@ class DataProcessor:
         except Exception as e:
             self.log("process() fatal error:", e)
             raise
+
 

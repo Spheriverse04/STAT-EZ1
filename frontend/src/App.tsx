@@ -55,7 +55,8 @@ function App() {
       })
 
       if (!response.ok) {
-        throw new Error('Processing failed')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Processing failed')
       }
 
       const result: ProcessingResult = await response.json()
@@ -75,6 +76,7 @@ function App() {
       
     } catch (error) {
       console.error('Processing error:', error)
+      alert(`Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsProcessing(false)
     }
@@ -215,5 +217,6 @@ function App() {
 }
 
 export default App
+
 
 
