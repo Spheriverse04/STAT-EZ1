@@ -91,13 +91,31 @@ const ImputationSettings: React.FC<ImputationSettingsProps> = ({ control, column
             <h4 className="text-md font-medium text-gray-900 mb-3">
               Columns with Missing Values ({columnsWithMissing.length})
             </h4>
+            
+            {columnsWithMissing.length > 0 && (
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <h5 className="font-medium text-blue-900 mb-2">Professional Recommendations:</h5>
+                <div className="space-y-1 text-sm text-blue-800">
+                  <div>• <strong>Mean:</strong> Best for normally distributed numeric data</div>
+                  <div>• <strong>Median:</strong> Robust for skewed data or presence of outliers</div>
+                  <div>• <strong>KNN:</strong> Most sophisticated, preserves relationships between variables</div>
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-3">
               {columnsWithMissing.map((column) => (
                 <div key={column.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex-1">
                     <div className="font-medium text-gray-900">{column.name}</div>
                     <div className="text-sm text-gray-600">
-                      {column.missing_count} missing values ({((column.missing_count / (column.missing_count + column.unique_count)) * 100).toFixed(1)}%)
+                      <span className="text-red-600 font-medium">{column.missing_count}</span> missing values
+                      <span className="ml-2 text-gray-500">
+                        ({column.missing_count > 0 ? ((column.missing_count / Math.max(column.missing_count + column.unique_count, 1)) * 100).toFixed(1) : '0.0'}%)
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Type: {column.type} • Unique values: {column.unique_count?.toLocaleString() || 0}
                     </div>
                   </div>
                   
@@ -112,9 +130,12 @@ const ImputationSettings: React.FC<ImputationSettingsProps> = ({ control, column
                           defaultValue=""
                         >
                           <option value="">Use Default</option>
-                          <option value="mean">Mean</option>
-                          <option value="median">Median</option>
+                          {column.type === 'numeric' && <option value="mean">Mean</option>}
+                          {column.type === 'numeric' && <option value="median">Median</option>}
                           <option value="knn">KNN</option>
+                          <option value="mode">Most Frequent</option>
+                          <option value="forward_fill">Forward Fill</option>
+                          <option value="backward_fill">Backward Fill</option>
                         </select>
                       )}
                     />
@@ -124,13 +145,15 @@ const ImputationSettings: React.FC<ImputationSettingsProps> = ({ control, column
             </div>
           </div>
 
-          {/* Method Explanations */}
+          {/* Advanced Method Explanations */}
           <div className="bg-blue-50 p-4 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">Imputation Methods Explained</h4>
+            <h4 className="font-medium text-blue-900 mb-2">Professional Imputation Methods</h4>
             <div className="space-y-2 text-sm text-blue-800">
-              <div><strong>Mean:</strong> Best for normally distributed data without outliers</div>
-              <div><strong>Median:</strong> Robust against outliers, good for skewed data</div>
-              <div><strong>KNN:</strong> Most sophisticated, considers relationships between variables</div>
+              <div><strong>Mean:</strong> Arithmetic average - ideal for symmetric, normally distributed numeric data</div>
+              <div><strong>Median:</strong> Middle value - robust against outliers and skewed distributions</div>
+              <div><strong>KNN:</strong> K-Nearest Neighbors - uses similar records to predict missing values</div>
+              <div><strong>Most Frequent:</strong> Mode imputation - best for categorical data</div>
+              <div><strong>Forward/Backward Fill:</strong> Time-series imputation using adjacent values</div>
             </div>
           </div>
         </div>

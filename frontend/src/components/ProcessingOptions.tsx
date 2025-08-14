@@ -77,22 +77,40 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({
       
       if (response.ok) {
         const preview: DataPreview = await response.json()
+        
+        // Ensure all required fields have default values
+        const safePreview: DataPreview = {
+          columns: preview.columns || [],
+          sample_rows: preview.sample_rows || [],
+          total_rows: preview.total_rows || 0,
+          mixed_columns: preview.mixed_columns || [],
+          requires_decisions: preview.requires_decisions || false,
+          data_quality_score: preview.data_quality_score || 0,
+          recommendations: preview.recommendations || []
+        }
+        
+        setDataPreview(safePreview)
         setDataPreview(preview)
         
         // Check for mixed columns and notify parent
-        if (preview.mixed_columns && preview.mixed_columns.length > 0 && onMixedColumnsDetected) {
-          onMixedColumnsDetected(preview.mixed_columns)
+        if (safePreview.mixed_columns && safePreview.mixed_columns.length > 0 && onMixedColumnsDetected) {
+          onMixedColumnsDetected(safePreview.mixed_columns)
         }
         
         // Initialize schema mapping with column names
         const mapping: Record<string, string> = {}
-        preview.columns.forEach(col => {
+        safePreview.columns.forEach(col => {
           mapping[col.name] = col.name
         })
         setValue('schema_mapping', mapping)
+      } else {
+        const errorData = await response.json()
+        console.error('Preview failed:', errorData)
+        setUploadError(errorData.error || 'Failed to analyze dataset')
       }
     } catch (error) {
       console.error('Failed to load preview:', error)
+      setUploadError('Network error while analyzing dataset')
     } finally {
       setLoading(false)
     }
