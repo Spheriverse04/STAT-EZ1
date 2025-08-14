@@ -68,6 +68,8 @@ export interface DataPreview {
   sample_rows: Record<string, any>[]
   total_rows: number
   requires_decisions?: boolean
+  data_quality_score?: number
+  recommendations?: string[]
 }
 
 export interface DataSummary {
@@ -105,4 +107,42 @@ export interface VisualizationConfig {
   color_column?: string
 }
 
+export interface DataQualityMetrics {
+  completeness_score: number
+  consistency_score: number
+  validity_score: number
+  uniqueness_score: number
+  overall_score: number
+  issues: Array<{
+    type: 'missing_data' | 'duplicates' | 'outliers' | 'inconsistent_format' | 'invalid_values'
+    severity: 'low' | 'medium' | 'high'
+    description: string
+    affected_columns: string[]
+    recommendation: string
+  }>
+}
+
+export interface ProfessionalAnalysisResult {
+  statistical_summary: Record<string, {
+    mean?: number
+    median?: number
+    mode?: any
+    std_dev?: number
+    variance?: number
+    skewness?: number
+    kurtosis?: number
+    percentiles?: Record<string, number>
+  }>
+  correlation_matrix?: Record<string, Record<string, number>>
+  data_distribution: Record<string, {
+    distribution_type: 'normal' | 'skewed' | 'uniform' | 'bimodal' | 'unknown'
+    normality_test_p_value?: number
+  }>
+  outlier_analysis: Record<string, {
+    outlier_count: number
+    outlier_percentage: number
+    detection_method: string
+    outlier_indices: number[]
+  }>
+}
 

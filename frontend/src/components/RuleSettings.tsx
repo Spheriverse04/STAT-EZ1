@@ -37,7 +37,7 @@ const RuleSettings: React.FC<RuleSettingsProps> = ({ control, columns }) => {
       transition={{ duration: 0.3 }}
     >
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Custom Rules</h3>
-      
+
       <div className="space-y-6">
         {/* Enable/Disable Toggle */}
         <div className="flex items-center justify-between">
@@ -56,14 +56,18 @@ const RuleSettings: React.FC<RuleSettingsProps> = ({ control, columns }) => {
                   checked={field.value}
                   onChange={field.onChange}
                 />
-                <div className={`
+                <div
+                  className={`
                   w-11 h-6 rounded-full transition-colors
                   ${field.value ? 'bg-primary-600' : 'bg-gray-200'}
-                `}>
-                  <div className={`
+                `}
+                >
+                  <div
+                    className={`
                     w-5 h-5 bg-white rounded-full shadow transform transition-transform
                     ${field.value ? 'translate-x-5' : 'translate-x-0'}
-                  `} />
+                  `}
+                  />
                 </div>
               </label>
             )}
@@ -197,10 +201,10 @@ const RuleSettings: React.FC<RuleSettingsProps> = ({ control, columns }) => {
             <div className="bg-green-50 p-4 rounded-lg">
               <h4 className="font-medium text-green-900 mb-2">Example Rules</h4>
               <div className="space-y-1 text-sm text-green-800">
-                <div>• Age greater than 120 → Flag (likely data entry error)</div>
-                <div>• Income less than 0 → Remove (invalid negative income)</div>
-                <div>• Email not contains "@" → Flag (invalid email format)</div>
-                <div>• Status equals "test" → Remove (test data)</div>
+                <div>• Age greater than 120 &rarr; Flag (likely data entry error)</div>
+                <div>• Income less than 0 &rarr; Remove (invalid negative income)</div>
+                <div>• Email not contains "@" &rarr; Flag (invalid email format)</div>
+                <div>• Status equals "test" &rarr; Remove (test data)</div>
               </div>
             </div>
           </motion.div>
@@ -211,3 +215,4 @@ const RuleSettings: React.FC<RuleSettingsProps> = ({ control, columns }) => {
 }
 
 export default RuleSettings
+

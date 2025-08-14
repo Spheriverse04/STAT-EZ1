@@ -1,0 +1,6 @@
+pandas
+numpy
+matplotlib
+scikit-learn   # optional, used for KNN imputer if present
+reportlab      # optional, not strictly needed if matplotlib PdfPages works
+

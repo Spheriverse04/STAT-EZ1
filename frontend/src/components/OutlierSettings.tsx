@@ -141,15 +141,59 @@ const OutlierSettings: React.FC<OutlierSettingsProps> = ({ control }) => {
 
             {/* Method Explanations */}
             <div className="bg-yellow-50 p-4 rounded-lg">
-              <h4 className="font-medium text-yellow-900 mb-2">Detection Methods Explained</h4>
+              <h4 className="font-medium text-yellow-900 mb-2">Professional Outlier Detection Methods</h4>
               <div className="space-y-2 text-sm text-yellow-800">
                 <div>
-                  <strong>Z-Score:</strong> Measures how many standard deviations away from the mean. 
-                  Values beyond ±3 are typically considered outliers.
+                  <strong>Z-Score (Parametric):</strong> Measures standard deviations from mean. 
+                  Assumes normal distribution. Values beyond ±2.5-3 are outliers.
                 </div>
                 <div>
-                  <strong>IQR:</strong> Uses quartiles to define normal range. 
-                  More robust for skewed data and doesn't assume normal distribution.
+                  <strong>IQR (Non-parametric):</strong> Uses quartiles (Q1, Q3) to define normal range. 
+                  Robust for skewed data, no distribution assumptions. Standard: Q1-1.5×IQR to Q3+1.5×IQR.
+                </div>
+                <div className="mt-2 p-2 bg-yellow-100 rounded">
+                  <strong>Professional Tip:</strong> Use Z-Score for normally distributed data, 
+                  IQR for skewed distributions or when you're unsure about data distribution.
+                </div>
+              </div>
+            </div>
+            
+            {/* Advanced Options */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2">Advanced Outlier Handling</h4>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">Apply to numeric columns only</span>
+                  <Controller
+                    name="outlier_detection.numeric_only"
+                    control={control}
+                    defaultValue={true}
+                    render={({ field }) => (
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      />
+                    )}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">Create outlier summary report</span>
+                  <Controller
+                    name="outlier_detection.create_report"
+                    control={control}
+                    defaultValue={true}
+                    render={({ field }) => (
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      />
+                    )}
+                  />
                 </div>
               </div>
             </div>
@@ -161,3 +205,4 @@ const OutlierSettings: React.FC<OutlierSettingsProps> = ({ control }) => {
 }
 
 export default OutlierSettings
+

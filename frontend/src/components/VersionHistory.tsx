@@ -61,33 +61,41 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({ versions }) => {
               </div>
               
               <div className="text-xs text-gray-600 mb-2">
-                {format(new Date(version.timestamp), 'MMM dd, yyyy HH:mm')}
+                {version.timestamp
+                  ? format(new Date(version.timestamp), 'MMM dd, yyyy HH:mm')
+                  : 'Unknown date'}
               </div>
               
               <div className="text-sm text-gray-700 mb-2 truncate">
-                {version.filename}
+                {version.filename ?? 'Unnamed file'}
               </div>
               
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <span className="text-gray-500">Rows:</span>
-                  <span className="ml-1 font-medium">{version.summary.rows_cleaned.toLocaleString()}</span>
+                  <span className="ml-1 font-medium">
+                    {version.summary?.rows_cleaned?.toLocaleString?.() ?? '0'}
+                  </span>
                 </div>
                 <div>
                   <span className="text-gray-500">Outliers:</span>
-                  <span className="ml-1 font-medium">{version.summary.outliers_detected}</span>
+                  <span className="ml-1 font-medium">
+                    {version.summary?.outliers_detected ?? '0'}
+                  </span>
                 </div>
               </div>
               
               <div className="mt-2 text-xs text-gray-500">
-                Method: {version.config.imputation.method}
-                {version.config.imputation.delete_null_rows && (
+                Method: {version.config?.imputation?.method ?? 'N/A'}
+                {version.config?.imputation?.delete_null_rows && (
                   <span className="ml-2 text-red-600">• Deleted null rows</span>
                 )}
-                {version.config.outlier_detection.enabled && (
-                  <span className="ml-2">• Outlier detection: {version.config.outlier_detection.method}</span>
+                {version.config?.outlier_detection?.enabled && (
+                  <span className="ml-2">
+                    • Outlier detection: {version.config?.outlier_detection?.method ?? 'N/A'}
+                  </span>
                 )}
-                {version.config.rules.enabled && version.config.rules.custom_rules.length > 0 && (
+                {version.config?.rules?.enabled && version.config?.rules?.custom_rules?.length > 0 && (
                   <span className="ml-2">• {version.config.rules.custom_rules.length} custom rules</span>
                 )}
               </div>
