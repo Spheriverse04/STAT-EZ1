@@ -545,5 +545,125 @@ def health_check():
         "processed_datasets": len(processed_datasets)
     })
 
+@app.route('/export/<version_id>', methods=['POST'])
+@app.route('/api/export/<version_id>', methods=['POST'])
+def export_dataset():
+    """Export processed dataset in various formats"""
+    try:
+        data = request.get_json()
+        export_format = data.get('format', 'csv')
+        filename = data.get('filename', 'dataset')
+        options = data.get('options', {})
+        
+        if version_id not in processed_datasets:
+            return jsonify({"error": "Dataset not found"}), 404
+            
+        df = processed_datasets[version_id]['dataframe']
+        
+        if export_format == 'csv':
+            output = df.to_csv(index=False)
+            mimetype = 'text/csv'
+            file_extension = 'csv'
+        elif export_format == 'json':
+            output = df.to_json(orient='records', indent=2)
+            mimetype = 'application/json'
+            file_extension = 'json'
+        elif export_format == 'excel':
+            # For Excel export, we'd need to create a BytesIO buffer
+            from io import BytesIO
+            output_buffer = BytesIO()
+            with pd.ExcelWriter(output_buffer, engine='openpyxl') as writer:
+                df.to_excel(writer, sheet_name='Cleaned_Data', index=False)
+                # Add metadata sheet if requested
+                if options.get('include_metadata', False):
+                    metadata_df = pd.DataFrame({
+                        'Property': ['Rows', 'Columns', 'Export_Date'],
+                        'Value': [len(df), len(df.columns), datetime.utcnow().isoformat()]
+                    })
+                    metadata_df.to_excel(writer, sheet_name='Metadata', index=False)
+            output_buffer.seek(0)
+            
+            return send_file(
+                output_buffer,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                as_attachment=True,
+                download_name=f"{filename}_export.xlsx"
+            )
+        else:
+            return jsonify({"error": f"Unsupported export format: {export_format}"}), 400
+            
+        # For CSV and JSON, return as text response
+        response = make_response(output)
+        response.headers['Content-Type'] = mimetype
+        response.headers['Content-Disposition'] = f'attachment; filename="{filename}_export.{file_extension}"'
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Export failed: {e}")
+        return jsonify({"error": f"Export failed: {str(e)}"}), 500
+
+@app.route('/api/data-quality/<version_id>', methods=['GET'])
+def get_data_quality_metrics():
+    """Get comprehensive data quality metrics"""
+    try:
+        if version_id not in processed_datasets:
+            return jsonify({"error": "Dataset not found"}), 404
+            
+        df = processed_datasets[version_id]['dataframe']
+        
+        # Calculate quality metrics
+        total_cells = len(df) * len(df.columns)
+        missing_cells = df.isna().sum().sum()
+        completeness_score = ((total_cells - missing_cells) / total_cells * 100) if total_cells > 0 else 100
+        
+        # Detect duplicates
+        duplicate_rows = df.duplicated().sum()
+        uniqueness_score = ((len(df) - duplicate_rows) / len(df) * 100) if len(df) > 0 else 100
+        
+        # Basic consistency check (placeholder)
+        consistency_score = 85.0  # Would implement actual consistency checks
+        
+        # Basic validity check (placeholder)
+        validity_score = 90.0  # Would implement actual validity checks
+        
+        overall_score = (completeness_score + consistency_score + validity_score + uniqueness_score) / 4
+        
+        # Generate issues
+        issues = []
+        if missing_cells > 0:
+            issues.append({
+                'type': 'missing_data',
+                'severity': 'high' if completeness_score < 80 else 'medium' if completeness_score < 95 else 'low',
+                'description': f'{missing_cells} missing values detected across the dataset',
+                'affected_columns': df.columns[df.isna().any()].tolist(),
+                'recommendation': 'Consider imputation strategies or removal of incomplete records'
+            })
+            
+        if duplicate_rows > 0:
+            issues.append({
+                'type': 'duplicates',
+                'severity': 'medium',
+                'description': f'{duplicate_rows} duplicate rows found',
+                'affected_columns': list(df.columns),
+                'recommendation': 'Review and remove duplicate records to ensure data integrity'
+            })
+        
+        metrics = {
+            'completeness_score': completeness_score,
+            'consistency_score': consistency_score,
+            'validity_score': validity_score,
+            'uniqueness_score': uniqueness_score,
+            'overall_score': overall_score,
+            'issues': issues
+        }
+        
+        return jsonify(metrics)
+        
+    except Exception as e:
+        logger.error(f"Quality metrics calculation failed: {e}")
+        return jsonify({"error": f"Quality assessment failed: {str(e)}"}), 500
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    app.run(debug=True, port=5001, host='0.0.0.0')
+

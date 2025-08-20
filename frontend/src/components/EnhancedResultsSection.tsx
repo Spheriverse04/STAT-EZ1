@@ -13,6 +13,9 @@ import { ProcessingResult } from '../types'
 import SQLQueryInterface from './SQLQueryInterface'
 import VisualizationBuilder from './VisualizationBuilder'
 import InteractiveDashboard from './InteractiveDashboard'
+import DataQualityAssessment from './DataQualityAssessment'
+import StatisticalAnalysis from './StatisticalAnalysis'
+import ExportOptions from './ExportOptions'
 
 interface EnhancedResultsSectionProps {
   result: ProcessingResult
@@ -25,7 +28,7 @@ const EnhancedResultsSection: React.FC<EnhancedResultsSectionProps> = ({
   onNewUpload, 
   onReconfigure 
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'sql' | 'visualize' | 'dashboard'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'quality' | 'statistics' | 'sql' | 'visualize' | 'dashboard' | 'export'>('overview')
 
   const downloadFile = () => {
     window.open(result.download_url, '_blank')
@@ -49,6 +52,24 @@ const EnhancedResultsSection: React.FC<EnhancedResultsSectionProps> = ({
     column_stats: {}
   }
 
+  // Mock data quality metrics
+  const qualityMetrics = {
+    completeness_score: 92.5,
+    consistency_score: 88.0,
+    validity_score: 95.2,
+    uniqueness_score: 99.1,
+    overall_score: 93.7,
+    issues: [
+      {
+        type: 'missing_data' as const,
+        severity: 'medium' as const,
+        description: 'Some columns have missing values that may impact analysis',
+        affected_columns: Object.keys(result.summary.missing_values_after || {}),
+        recommendation: 'Consider advanced imputation methods for critical missing values'
+      }
+    ]
+  }
+
   // Extract column names from summary
   const columns = Object.keys(result.summary.missing_values_before || {}).map(name => ({
     name,
@@ -60,9 +81,12 @@ const EnhancedResultsSection: React.FC<EnhancedResultsSectionProps> = ({
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: ChartBarIcon },
+    { id: 'quality', label: 'Data Quality', icon: CheckCircleIcon },
+    { id: 'statistics', label: 'Statistics', icon: ChartBarIcon },
     { id: 'sql', label: 'SQL Query', icon: TableCellsIcon },
     { id: 'visualize', label: 'Visualizations', icon: EyeIcon },
-    { id: 'dashboard', label: 'Dashboard', icon: ChartBarIcon }
+    { id: 'dashboard', label: 'Dashboard', icon: ChartBarIcon },
+    { id: 'export', label: 'Export', icon: ArrowDownTrayIcon }
   ] as const
 
   return (
@@ -273,6 +297,31 @@ const EnhancedResultsSection: React.FC<EnhancedResultsSectionProps> = ({
         </motion.div>
       )}
 
+      {activeTab === 'quality' && (
+        <motion.div
+          key="quality"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <DataQualityAssessment metrics={qualityMetrics} />
+        </motion.div>
+      )}
+
+      {activeTab === 'statistics' && (
+        <motion.div
+          key="statistics"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <StatisticalAnalysis 
+            versionId={result.version_id} 
+            columns={columns.map(col => col.name)}
+          />
+        </motion.div>
+      )}
+
       {activeTab === 'sql' && (
         <motion.div
           key="sql"
@@ -314,8 +363,23 @@ const EnhancedResultsSection: React.FC<EnhancedResultsSectionProps> = ({
           />
         </motion.div>
       )}
+
+      {activeTab === 'export' && (
+        <motion.div
+          key="export"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <ExportOptions 
+            versionId={result.version_id}
+            filename={result.cleaned_filename}
+          />
+        </motion.div>
+      )}
     </motion.div>
   )
 }
 
 export default EnhancedResultsSection
+

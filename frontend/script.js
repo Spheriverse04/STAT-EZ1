@@ -42,7 +42,7 @@ async function handleFile(file) {
     formData.append('file', file);
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/upload', {
+        const response = await fetch('http://127.0.0.1:5001/upload', {
             method: 'POST',
             body: formData,
         });
@@ -96,7 +96,7 @@ function displayResults(data) {
     });
 
     // Setup download link
-    downloadLink.href = `http://127.0.0.1:5000/download/${data.cleaned_filename}`;
+    downloadLink.href = `http://127.0.0.1:5001/download/${data.cleaned_filename}`;
     downloadLink.download = data.cleaned_filename;
 
 

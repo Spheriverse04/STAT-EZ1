@@ -146,3 +146,34 @@ export interface ProfessionalAnalysisResult {
   }>
 }
 
+export interface ExportOptions {
+  format: 'csv' | 'excel' | 'json' | 'pdf_report' | 'summary_dashboard' | 'api_endpoint'
+  filename: string
+  options: {
+    include_metadata: boolean
+    include_charts: boolean
+    compression: 'none' | 'gzip' | 'zip'
+  }
+}
+
+export interface NotificationMessage {
+  id: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  title: string
+  message: string
+  timestamp: string
+  read: boolean
+}
+
+export interface UserPreferences {
+  theme: 'light' | 'dark' | 'auto'
+  default_imputation_method: 'mean' | 'median' | 'knn'
+  auto_outlier_detection: boolean
+  export_format_preference: string
+  notification_settings: {
+    processing_complete: boolean
+    quality_alerts: boolean
+    export_ready: boolean
+  }
+}
+
